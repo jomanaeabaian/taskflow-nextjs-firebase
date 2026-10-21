@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    match /users/{uid} {
+      // any signed-in user can read profiles (needed to add members by email and show names)
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /projects/{pid} {
+      function isOwner() { return resource.data.ownerId == request.auth.uid; }
+      function isMember() { return request.auth.uid in resource.data.memberIds; }
+
+      // resource == null lets the app show "project not found" instead of "access denied"
+      allow read: if signedIn() && (resource == null || isMember());
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberIds == [request.auth.uid];
+      allow update: if signedIn() && isOwner()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.ownerId in request.resource.data.memberIds;
+      allow delete: if signedIn() && isOwner();
+
+      match /tasks/{tid} {
+        function project() { return get(/databases/$(database)/documents/projects/$(pid)).data; }
+        function isMember() { return request.auth.uid in project().memberIds; }
+        function isOwner() { return project().ownerId == request.auth.uid; }
+
+        allow read: if signedIn() && isMember();
+        allow create: if signedIn() && isMember() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if signedIn() && isMember()
+          && (isOwner() || resource.data.createdBy == request.auth.uid || resource.data.assigneeId == request.auth.uid)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && (request.resource.data.status == resource.data.status || isOwner() || resource.data.assigneeId == request.auth.uid);
+        allow delete: if signedIn() && isMember() && (isOwner() || resource.data.createdBy == request.auth.uid);
+      }
+    }
+  }
+}
