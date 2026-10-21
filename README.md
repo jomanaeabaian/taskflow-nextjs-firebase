@@ -3,9 +3,6 @@
 A responsive project & task management web app for small software teams: create projects, add teammates,
 assign tasks, track progress and monitor deadlines. Built for the 7-Day Full-Stack Development Challenge.
 
-- **Live demo:** https://<your-app>.vercel.app  <!-- TODO: replace -->
-- **Repository:** https://github.com/<your-user>/taskflow  <!-- TODO: replace -->
-
 ## Features
 _Tick only what you have tested (see `docs/test-plan.md`)._
 
